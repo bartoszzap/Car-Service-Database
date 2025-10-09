@@ -1,0 +1,34 @@
+conn = pyodbc.connect("Driver={SQL Server};Server=localhost\\SQLEXPRESS;Database=CarService_DB;")
+cursor = conn.cursor()
+# values to be edited depending on what results are to be achieved (returns hours worked in between start & end date)
+start_date = '2020-06-17'
+end_date = '2020-06-18'
+
+# check that the records are stored correctly as TIME to prevent any errors
+start_time = '00:00:00'
+end_time = '23:59:59'
+
+# SQL query to calculate the total time spent per employee in hours
+query = """
+SELECT e.emp_name, SUM(DATEDIFF(SECOND, '00:00:00', w.time_spent)) / 3600.0 AS total_time_spent -- calculate the difference between 2 time values, SECOND tells SQL to calculate in seconds, 00:00:00 is the reference time, /3600 to change seconds to hours
+FROM works_on w -- take records from the works_on table
+JOIN services s ON w.service_id = s.service_id 
+JOIN employees e ON w.employee_id = e.employee_id
+WHERE s.dropoff_date BETWEEN ? AND ? 
+AND s.dropoff_time BETWEEN ? AND ?  -- check that time is recorded correctly, starting from 00:00:00 to 23:59:59
+GROUP BY e.employee_id, e.emp_name
+ORDER BY total_time_spent DESC; -- order time spent from highest to lowest
+"""
+
+# parameters for (?,?,?,?) (dropoff_date, dropoff_time)
+cursor.execute(query, (start_date, end_date, start_time, end_time))
+
+# fetch and display the results
+results = cursor.fetchall()
+
+# print out the results (employee and time calculation)
+for row in results:
+    print(f"Mechanic: {row[0]}, has spent a total of {row[1]} hours working between {start_date} and {end_date}.")
+
+# close out the connection
+conn.close()

@@ -1,0 +1,34 @@
+import pyodbc
+
+# Connect to the database
+conn = pyodbc.connect("Driver={SQL Server};Server=localhost\\SQLEXPRESS;Database=CarService_DB;")
+cursor = conn.cursor()
+
+# Parameters, search range between two dates
+start_date = '2021-06-20'
+end_date = '2021-06-25'
+
+# SQL query to filter out records to meet the business queries criteria
+Query = """
+SELECT c.cust_name, c.cust_email, ca.registration, ca.make, s.next_service -- select relevant records
+FROM customers c
+JOIN cars ca ON c.customer_id = ca.customer_id -- link the customer_id records from the cars to the customers table
+JOIN services s ON ca.registration = s.registration -- link the registration records from the car table to the services table
+WHERE s.next_service BETWEEN ? AND ?  -- the date range to search between the 'next_service' records
+"""
+
+# Execute the query
+cursor.execute(Query, (start_date, end_date))
+
+# Display the results below
+results = cursor.fetchall()
+numCustomers = 0
+for cust in results:
+    numCustomers += 1 # calculate how many customers were found meeting the criteria
+print(f"There are {numCustomers} customers found which have their next service scheduled between {start_date} and {end_date}.\n")
+for row in results:
+    print(f"Customer Name: {row.cust_name}\nEmail: {row.cust_email}\nCar Make: {row.make}\nRegistration: {row.registration}\nScheduled Next Service: {row.next_service}\n")
+
+# Close the connection
+conn.commit()
+conn.close()

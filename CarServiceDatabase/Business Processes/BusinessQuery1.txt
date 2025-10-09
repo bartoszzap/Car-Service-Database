@@ -1,0 +1,24 @@
+import pyodbc
+conn = pyodbc.connect("Driver={SQL Server};Server=localhost\\SQLEXPRESS;Database=CarService_DB;")
+cursor = conn.cursor()
+
+# parameters
+service_id = 'S2006-136'
+dropoff_date = '2024-12-06'
+dropoff_time = '12:10:00'
+work_required = 'Other - Test'
+next_service = '2024-12-09'
+mileage = 49904
+registration = 'SEZ 5629'
+
+# SQL code to insert data
+SQLquery = ("INSERT INTO services (service_id, dropoff_date, dropoff_time, work_required, next_service, mileage, registration)"
+               "VALUES (?, ?, ?, ?, ?, ?, ?);")
+data = [service_id, dropoff_date, dropoff_time, work_required, next_service, mileage, registration]
+
+# execute the SQL code
+cursor.execute(insertQuery, data)
+
+# close the connection
+conn.commit()
+conn.close()

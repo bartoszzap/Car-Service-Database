@@ -1,0 +1,52 @@
+import pyodbc
+
+# Connect to the database
+conn = pyodbc.connect("Driver={SQL Server};Server=localhost\\SQLEXPRESS;Database=CarService_DB;")
+cursor = conn.cursor()
+
+# Parameters
+registration = 'AF56 WWJ'
+dropoff_date = '2020-06-17'
+
+
+# SQL query to receive employees who worked on a specific date
+Query = """
+WITH previous_services AS (
+    SELECT s.service_id, s.registration, s.dropoff_date
+    FROM services s
+    WHERE s.registration = ?  -- the car involved in the new booking
+),
+previous_employees AS (
+    SELECT DISTINCT wo.employee_id
+    FROM works_on wo
+    JOIN previous_services ps ON wo.service_id = ps.service_id
+),
+dropoff_employees AS (
+    SELECT wo.employee_id, COUNT(wo.service_id) AS jobsDone
+    FROM works_on wo
+    JOIN services s ON wo.service_id = s.service_id
+    WHERE s.dropoff_date = ?  -- the new service drop-off date
+    GROUP BY wo.employee_id
+)
+SELECT e.emp_name, de.jobsDone
+FROM dropoff_employees de
+JOIN employees e ON de.employee_id = e.employee_id
+JOIN previous_employees mwp ON mwp.employee_id = de.employee_id
+WHERE de.jobsDone > 0  -- only return employees who have more than one job done at the date
+"""
+
+# Execute the SQL query
+cursor.execute(Query, (registration, dropoff_date))
+
+# Display the results
+results = cursor.fetchall()
+numEmployees = 0
+for num in results:
+    numEmployees += 1
+print(f"On {dropoff_date}, there were {numEmployees} employees who had jobs assigned to them:\n")
+for row in results:
+    print(f"Employee: {row.emp_name}, had worked on the vehicle with registration: {registration}.\nThey had also partaken in {row.jobsDone} job(s) on {dropoff_date}.\n")
+
+# Close the connection
+conn.commit()
+conn.close()
